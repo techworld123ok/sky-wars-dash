@@ -1,14 +1,35 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState } from "react";
+import { GameMenu } from "@/components/GameMenu";
+import { GameLobby } from "@/components/GameLobby";
+import { GameArena } from "@/components/GameArena";
+
+type GameState = "menu" | "lobby" | "arena";
 
 const Index = () => {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
-    </div>
-  );
+  const [gameState, setGameState] = useState<GameState>("menu");
+
+  const handleModeSelect = (mode: string) => {
+    if (mode === "quick-match") {
+      setGameState("arena");
+    } else if (mode === "create-room") {
+      setGameState("lobby");
+    }
+  };
+
+  const renderGame = () => {
+    switch (gameState) {
+      case "menu":
+        return <GameMenu onModeSelect={handleModeSelect} />;
+      case "lobby":
+        return <GameLobby />;
+      case "arena":
+        return <GameArena />;
+      default:
+        return <GameMenu onModeSelect={handleModeSelect} />;
+    }
+  };
+
+  return <div className="w-full">{renderGame()}</div>;
 };
 
 export default Index;
