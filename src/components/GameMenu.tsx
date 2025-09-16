@@ -12,7 +12,8 @@ import {
   Globe,
   Star,
   Crown,
-  Target
+  Target,
+  Bot
 } from "lucide-react";
 
 interface GameMode {
@@ -26,6 +27,15 @@ interface GameMode {
 }
 
 const gameModes: GameMode[] = [
+  {
+    id: "single-player",
+    name: "Single Player",
+    description: "Train against AI bots and perfect your skills",
+    playerCount: "1 Player vs 3 Bots",
+    icon: Bot,
+    difficulty: "Easy",
+    isPopular: true,
+  },
   {
     id: "battle-royale",
     name: "Battle Royale",
@@ -63,7 +73,7 @@ const gameModes: GameMode[] = [
 ];
 
 export const GameMenu = ({ onModeSelect }: { onModeSelect: (mode: string) => void }) => {
-  const [selectedMode, setSelectedMode] = useState("battle-royale");
+  const [selectedMode, setSelectedMode] = useState("single-player");
 
   return (
     <div className="min-h-screen p-6 flex items-center justify-center">
@@ -159,10 +169,10 @@ export const GameMenu = ({ onModeSelect }: { onModeSelect: (mode: string) => voi
                 variant="hero" 
                 size="lg" 
                 className="flex-1 text-lg py-6 animate-pulse-glow"
-                onClick={() => onModeSelect('quick-match')}
+                onClick={() => onModeSelect(selectedMode)}
               >
                 <Play className="h-6 w-6 mr-3" />
-                QUICK MATCH
+                PLAY NOW
               </Button>
               
               <Button 

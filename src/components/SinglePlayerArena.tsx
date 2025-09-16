@@ -10,39 +10,61 @@ import {
   Crosshair, 
   Shield, 
   Zap,
-  Users,
   Timer,
   Trophy,
   Settings,
-  ArrowLeft
+  ArrowLeft,
+  Bot
 } from "lucide-react";
 import * as THREE from "three";
 
-// Floating Platform Component
-const FloatingPlatform = ({ position, color = "#00AAFF" }: { position: [number, number, number], color?: string }) => {
-  const meshRef = useRef<THREE.Mesh>(null);
+// Bot AI Player Component
+const BotPlayer = ({ position, botId }: { position: [number, number, number], botId: number }) => {
+  const groupRef = useRef<THREE.Group>(null);
+  const [targetPosition, setTargetPosition] = useState(position);
   
   useFrame((state) => {
-    if (meshRef.current) {
-      meshRef.current.rotation.y += 0.005;
-      meshRef.current.position.y = position[1] + Math.sin(state.clock.elapsedTime + position[0]) * 0.2;
+    if (groupRef.current) {
+      // Simple AI movement pattern
+      const time = state.clock.elapsedTime;
+      const moveSpeed = 0.02;
+      
+      // Random movement pattern for each bot
+      const offsetX = Math.sin(time * (0.5 + botId * 0.2)) * 5;
+      const offsetZ = Math.cos(time * (0.3 + botId * 0.15)) * 5;
+      const offsetY = position[1] + Math.sin(time * 2 + botId) * 2;
+      
+      groupRef.current.position.x = position[0] + offsetX;
+      groupRef.current.position.z = position[2] + offsetZ;
+      groupRef.current.position.y = offsetY;
+      groupRef.current.rotation.y += moveSpeed;
     }
   });
 
   return (
-    <Box ref={meshRef} position={position} args={[4, 0.5, 4]}>
-      <meshLambertMaterial color={color} transparent opacity={0.8} />
-    </Box>
+    <group ref={groupRef} position={position}>
+      {/* Bot Body */}
+      <Sphere args={[0.5]} position={[0, 0, 0]}>
+        <meshLambertMaterial color="#FF4444" />
+      </Sphere>
+      {/* Bot Jetpack */}
+      <Box args={[0.3, 0.8, 0.2]} position={[0, 0, 0.4]}>
+        <meshLambertMaterial color="#880000" />
+      </Box>
+      {/* Bot Flames */}
+      <Sphere args={[0.1, 0.3]} position={[0, -0.5, 0.5]}>
+        <meshLambertMaterial color="#FF8800" transparent opacity={0.7} />
+      </Sphere>
+    </group>
   );
 };
 
-// Jetpack Player Component
-const JetpackPlayer = ({ position }: { position: [number, number, number] }) => {
+// Player Component
+const Player = ({ position }: { position: [number, number, number] }) => {
   const groupRef = useRef<THREE.Group>(null);
   
   useFrame((state) => {
     if (groupRef.current) {
-      groupRef.current.rotation.y += 0.02;
       groupRef.current.position.y = position[1] + Math.sin(state.clock.elapsedTime * 2) * 0.3;
     }
   });
@@ -62,6 +84,24 @@ const JetpackPlayer = ({ position }: { position: [number, number, number] }) => 
         <meshLambertMaterial color="#FFAA00" transparent opacity={0.7} />
       </Sphere>
     </group>
+  );
+};
+
+// Floating Platform Component
+const FloatingPlatform = ({ position, color = "#00AAFF" }: { position: [number, number, number], color?: string }) => {
+  const meshRef = useRef<THREE.Mesh>(null);
+  
+  useFrame((state) => {
+    if (meshRef.current) {
+      meshRef.current.rotation.y += 0.005;
+      meshRef.current.position.y = position[1] + Math.sin(state.clock.elapsedTime + position[0]) * 0.2;
+    }
+  });
+
+  return (
+    <Box ref={meshRef} position={position} args={[4, 0.5, 4]}>
+      <meshLambertMaterial color={color} transparent opacity={0.8} />
+    </Box>
   );
 };
 
@@ -85,7 +125,7 @@ const PowerOrb = ({ position, color }: { position: [number, number, number], col
 };
 
 // 3D Game Scene
-const GameScene = () => {
+const SinglePlayerScene = () => {
   return (
     <Canvas camera={{ position: [0, 10, 15], fov: 75 }}>
       <ambientLight intensity={0.3} />
@@ -101,10 +141,13 @@ const GameScene = () => {
       <FloatingPlatform position={[5, -2, 12]} color="#FFAA00" />
       <FloatingPlatform position={[-8, 8, -8]} color="#AA00FF" />
       
-      {/* Players */}
-      <JetpackPlayer position={[2, 3, 2]} />
-      <JetpackPlayer position={[-3, 6, -4]} />
-      <JetpackPlayer position={[6, 1, 8]} />
+      {/* Player */}
+      <Player position={[0, 3, 2]} />
+      
+      {/* AI Bots */}
+      <BotPlayer position={[-3, 6, -4]} botId={1} />
+      <BotPlayer position={[6, 1, 8]} botId={2} />
+      <BotPlayer position={[-8, 4, 5]} botId={3} />
       
       {/* Power Orbs */}
       <PowerOrb position={[0, 8, 0]} color="#FFFF00" />
@@ -119,7 +162,7 @@ const GameScene = () => {
         anchorX="center"
         anchorY="middle"
       >
-        JETPACK SKY WARS
+        SINGLE PLAYER MODE
       </Text>
       
       <OrbitControls enablePan={false} maxPolarAngle={Math.PI / 2} />
@@ -127,16 +170,19 @@ const GameScene = () => {
   );
 };
 
-// Game HUD Component
-const GameHUD = ({ onBack }: { onBack?: () => void }) => {
+// Single Player HUD Component
+const SinglePlayerHUD = ({ onBack }: { onBack: () => void }) => {
   const [health, setHealth] = useState(100);
   const [fuel, setFuel] = useState(75);
-  const [ammo, setAmmo] = useState(30);
-  const [timeLeft, setTimeLeft] = useState(180); // 3 minutes
+  const [score, setScore] = useState(0);
+  const [botsDefeated, setBotsDefeated] = useState(0);
+  const [timeLeft, setTimeLeft] = useState(300); // 5 minutes
 
   useEffect(() => {
     const timer = setInterval(() => {
       setTimeLeft(prev => Math.max(0, prev - 1));
+      // Simulate score increase
+      setScore(prev => prev + Math.floor(Math.random() * 10));
     }, 1000);
     return () => clearInterval(timer);
   }, []);
@@ -158,15 +204,27 @@ const GameHUD = ({ onBack }: { onBack?: () => void }) => {
               <span className="font-mono text-lg font-bold">{formatTime(timeLeft)}</span>
             </div>
             <div className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-secondary" />
-              <span className="font-bold">6/8 Alive</span>
+              <Bot className="h-4 w-4 text-destructive" />
+              <span className="font-bold">{botsDefeated}/3 Bots Defeated</span>
             </div>
             <div className="flex items-center gap-2">
               <Trophy className="h-4 w-4 text-accent" />
-              <span className="font-bold">Rank #3</span>
+              <span className="font-bold">Score: {score.toLocaleString()}</span>
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Back Button */}
+      <div className="absolute top-6 left-6 pointer-events-auto">
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="bg-card/90 backdrop-blur-sm"
+          onClick={onBack}
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
       </div>
 
       {/* Bottom Left - Player Stats */}
@@ -190,25 +248,19 @@ const GameHUD = ({ onBack }: { onBack?: () => void }) => {
               </div>
               <span className="text-sm font-bold min-w-[3rem]">{fuel}/100</span>
             </div>
-            
-            {/* Ammo */}
-            <div className="flex items-center gap-3">
-              <Crosshair className="h-5 w-5 text-secondary" />
-              <span className="text-sm font-bold">Ammo: {ammo}/100</span>
-            </div>
           </div>
         </div>
 
-        {/* Active Powerups */}
+        {/* AI Difficulty */}
         <div className="bg-card/90 border border-primary/30 rounded-lg p-3 backdrop-blur-sm">
           <div className="flex gap-2">
             <Badge variant="secondary" className="glow-secondary">
-              <Shield className="h-3 w-3 mr-1" />
-              Shield
+              <Bot className="h-3 w-3 mr-1" />
+              AI: Normal
             </Badge>
             <Badge variant="outline" className="border-accent/50">
               <Zap className="h-3 w-3 mr-1" />
-              Speed
+              Training Mode
             </Badge>
           </div>
         </div>
@@ -226,20 +278,6 @@ const GameHUD = ({ onBack }: { onBack?: () => void }) => {
         </div>
       </div>
 
-      {/* Back Button */}
-      {onBack && (
-        <div className="absolute top-6 left-6 pointer-events-auto">
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="bg-card/90 backdrop-blur-sm"
-            onClick={onBack}
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        </div>
-      )}
-
       {/* Top Right - Settings */}
       <div className="absolute top-6 right-6 pointer-events-auto">
         <Button variant="ghost" size="icon" className="bg-card/90 backdrop-blur-sm">
@@ -255,16 +293,16 @@ const GameHUD = ({ onBack }: { onBack?: () => void }) => {
   );
 };
 
-export const GameArena = ({ onBack }: { onBack?: () => void }) => {
+export const SinglePlayerArena = ({ onBack }: { onBack: () => void }) => {
   return (
     <div className="h-screen w-full relative bg-background overflow-hidden">
       {/* 3D Game World */}
       <div className="absolute inset-0">
-        <GameScene />
+        <SinglePlayerScene />
       </div>
       
       {/* Game HUD Overlay */}
-      <GameHUD onBack={onBack} />
+      <SinglePlayerHUD onBack={onBack} />
     </div>
   );
 };

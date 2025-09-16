@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Users, Rocket, Zap, Settings, Copy, Share } from "lucide-react";
+import { Users, Rocket, Zap, Settings, Copy, Share, ArrowLeft } from "lucide-react";
 
 interface Player {
   id: string;
@@ -12,7 +12,7 @@ interface Player {
   isHost: boolean;
 }
 
-export const GameLobby = () => {
+export const GameLobby = ({ onBack }: { onBack?: () => void }) => {
   const [players, setPlayers] = useState<Player[]>([
     { id: "1", name: "SkyCommander", isReady: true, isHost: true },
     { id: "2", name: "JetPilot_42", isReady: false, isHost: false },
@@ -28,6 +28,20 @@ export const GameLobby = () => {
 
   return (
     <div className="min-h-screen p-6 flex items-center justify-center">
+      {/* Back Button */}
+      {onBack && (
+        <div className="absolute top-6 left-6">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="bg-card/90 backdrop-blur-sm"
+            onClick={onBack}
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
+      
       <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         {/* Main Lobby Card */}
